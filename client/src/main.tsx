@@ -6,8 +6,7 @@ import {
   useWallet,
 } from "@txnlab/use-wallet-react";
 import { pera } from "@txnlab/use-wallet-pera";
-import { x402Client } from "@x402/core/client";
-import { wrapFetchWithPayment } from "@x402/fetch";
+import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
 import { ExactAvmScheme } from "@x402/avm/exact/client";
 import type { ClientAvmSigner } from "@x402/avm";
 import "./styles.css";
@@ -61,10 +60,7 @@ function Tester() {
       };
 
       const client = new x402Client();
-      client.register(
-        "algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
-        new ExactAvmScheme(signer),
-      );
+      client.register("algorand:*", new ExactAvmScheme(signer));
 
       setStatus("Si Pera solicita firma, revisa y aprueba la transacción de 0.01 Test USDC.");
 
