@@ -11,9 +11,15 @@ import { ExactAvmScheme } from "@x402/avm/exact/client";
 import type { ClientAvmSigner } from "@x402/avm";
 import "./styles.css";
 
+const configuredNetwork =
+  import.meta.env.VITE_X402_NETWORK?.toLowerCase() === "mainnet"
+    ? "mainnet"
+    : "testnet";
+const isMainnet = configuredNetwork === "mainnet";
+
 const walletManager = new WalletManager({
   wallets: [pera()],
-  defaultNetwork: "testnet",
+  defaultNetwork: configuredNetwork,
 });
 
 function shortAddress(address: string) {
@@ -35,7 +41,9 @@ function Tester() {
       setStatus("Abriendo Pera Wallet…");
       await wallet.connect();
       if (!wallet.isActive) wallet.setActive();
-      setStatus("Wallet conectada. Verifica que sea DollarOne Tester en TestNet.");
+      setStatus(
+        `Wallet conectada. Verifica que sea DollarOne Tester en ${isMainnet ? "MainNet" : "TestNet"}.`,
+      );
     } catch (error) {
       setStatus("No se completó la conexión con Pera.");
       console.error(error);
@@ -62,7 +70,9 @@ function Tester() {
       const client = new x402Client();
       client.register("algorand:*", new ExactAvmScheme(signer));
 
-      setStatus("Si Pera solicita firma, revisa y aprueba la transacción de 0.01 Test USDC.");
+      setStatus(
+        `Si Pera solicita firma, revisa y aprueba la transacción de 0.01 ${isMainnet ? "USDC real" : "Test USDC"}.`,
+      );
 
       const fetchWithPayment = wrapFetchWithPayment(globalThis.fetch.bind(globalThis), client);
 
@@ -100,8 +110,17 @@ function Tester() {
         <div className="eyebrow">PROYECTO $1M · EXP-001</div>
         <h1>DollarOne x402 Tester</h1>
         <p>
-          Prueba segura en <strong>Algorand TestNet</strong>. La transacción usa
-          USDC de prueba, sin valor real.
+          {isMainnet ? (
+            <>
+              Prueba en <strong>Algorand MainNet</strong>. Esta transacción usa
+              <strong> USDC real</strong>.
+            </>
+          ) : (
+            <>
+              Prueba segura en <strong>Algorand TestNet</strong>. La transacción usa
+              USDC de prueba, sin valor real.
+            </>
+          )}
         </p>
       </section>
 
@@ -137,7 +156,8 @@ function Tester() {
             disabled={busy}
           />
           <div className="price">
-            Precio de prueba: <strong>0.01 USDC</strong>
+            Precio: <strong>0.01 USDC</strong>
+            {isMainnet ? " · DINERO REAL" : " · TestNet"}
           </div>
           <button
             className="pay"
