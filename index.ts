@@ -14,6 +14,7 @@ import {
 } from "@x402/avm";
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
 import { resolveLocation } from "./src/location.js";
 
 config();
@@ -78,6 +79,10 @@ const locationDiscovery = declareDiscoveryExtension({
 });
 
 const app = new Hono();
+
+app.use("/assets/*", serveStatic({ root: "./public" }));
+app.get("/tester", serveStatic({ path: "./public/index.html" }));
+app.get("/", c => c.redirect("/tester"));
 
 app.get("/health", c =>
   c.json({
