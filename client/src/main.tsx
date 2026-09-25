@@ -60,7 +60,7 @@ function Tester() {
           signTransactions(txns, indexesToSign),
       };
 
-      const client = new x402Client({ schemes: [] });
+      const client = new x402Client();
       client.register(
         "algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
         new ExactAvmScheme(signer),
