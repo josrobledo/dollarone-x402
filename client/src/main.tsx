@@ -7,6 +7,7 @@ import {
 } from "@txnlab/use-wallet-react";
 import { pera } from "@txnlab/use-wallet-pera";
 import { x402Client } from "@x402/core/client";
+import { wrapFetchWithPayment } from "@x402/fetch";
 import { ExactAvmScheme } from "@x402/avm/exact/client";
 import type { ClientAvmSigner } from "@x402/avm";
 import "./styles.css";
@@ -67,7 +68,9 @@ function Tester() {
 
       setStatus("Si Pera solicita firma, revisa y aprueba la transacción de 0.01 Test USDC.");
 
-      const response = await client.fetch("/resolve-location", {
+      const fetchWithPayment = wrapFetchWithPayment(globalThis.fetch.bind(globalThis), client);
+
+      const response = await fetchWithPayment("/resolve-location", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ query }),
