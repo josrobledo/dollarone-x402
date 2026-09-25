@@ -7,7 +7,7 @@ import {
 } from "@txnlab/use-wallet-react";
 import { pera } from "@txnlab/use-wallet-pera";
 import { x402Client } from "@x402/core/client";
-import { registerExactAvmScheme } from "@x402/avm/exact/client";
+import { ExactAvmScheme } from "@x402/avm/exact/client";
 import type { ClientAvmSigner } from "@x402/avm";
 import "./styles.css";
 
@@ -60,12 +60,10 @@ function Tester() {
       };
 
       const client = new x402Client({ schemes: [] });
-      registerExactAvmScheme(client, {
-        signer,
-        algodConfig: {
-          algodUrl: "https://testnet-api.algonode.cloud",
-        },
-      });
+      client.register(
+        "algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
+        new ExactAvmScheme(signer),
+      );
 
       setStatus("Si Pera solicita firma, revisa y aprueba la transacción de 0.01 Test USDC.");
 
