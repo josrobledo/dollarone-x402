@@ -8,7 +8,6 @@ import {
 } from "@x402-avm/extensions";
 import type { ResourceServerExtension } from "@x402/core/types";
 import {
-  ALGORAND_TESTNET_CAIP2,
   ALGORAND_MAINNET_CAIP2,
   USDC_TESTNET_ASA_ID,
   USDC_MAINNET_ASA_ID,
@@ -29,7 +28,13 @@ const facilitatorUrl =
   process.env.FACILITATOR_URL || "https://facilitator.goplausible.xyz";
 const networkName = (process.env.X402_NETWORK || "testnet").toLowerCase();
 const isMainnet = networkName === "mainnet";
-const network = isMainnet ? ALGORAND_MAINNET_CAIP2 : ALGORAND_TESTNET_CAIP2;
+
+// Explicit TestNet CAIP-2 string. The current package constant used in the
+// first Railway deploy resolved to a truncated identifier, which caused
+// GoPlausible capability negotiation to reject the route.
+const ALGORAND_TESTNET_CAIP2_FULL =
+  "algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=";
+const network = isMainnet ? ALGORAND_MAINNET_CAIP2 : ALGORAND_TESTNET_CAIP2_FULL;
 const usdcAsset = isMainnet ? USDC_MAINNET_ASA_ID : USDC_TESTNET_ASA_ID;
 const port = Number(process.env.PORT || 4021);
 
@@ -44,6 +49,7 @@ server.registerExtension(
 );
 
 const locationDiscovery = declareDiscoveryExtension({
+  bodyType: "json",
   input: {
     query: "col centro vicente guerrero dgo",
   },
