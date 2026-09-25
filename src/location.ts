@@ -55,8 +55,6 @@ const STATES: StateDef[] = [
   { code: "32", name: "Zacatecas", aliases: ["ZAC", "ZACATECAS"] }
 ];
 
-// Temporary seed for the first x402 MVP. Nationwide municipality/locality
-// enrichment will be loaded from open government catalogs in the next iteration.
 const MUNICIPALITY_SEEDS = [
   { state: "Durango", municipality: "Vicente Guerrero", aliases: ["VICENTE GUERRERO", "VG", "VICENTE G"] },
   { state: "Durango", municipality: "Durango", aliases: ["DURANGO", "VICTORIA DE DURANGO"] },
@@ -75,16 +73,34 @@ export function normalizeText(value: string): string {
     .trim();
 }
 
-function findState(normalized: string): StateDef | null {
-  const ordered = [...STATES].sort(
-    (a, b) => Math.max(...b.aliases.map(x => x.length)) - Math.max(...a.aliases.map(x => x.length)),
-  );
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^$()|[\]\\]/g, "\\$&");
+}
 
-  for (const state of ordered) {
-    const aliases = [...state.aliases].sort((a, b) => b.length - a.length);
-    if (aliases.some(alias => normalized.includes(normalizeText(alias)))) return state;
+function findState(normalized: string): StateDef | null {
+  const matches: Array<{ state: StateDef; score: number }> = [];
+
+  for (const state of STATES) {
+    for (const rawAlias of state.aliases) {
+      const alias = normalizeText(rawAlias);
+      const regex = new RegExp("(?:^|\\s)" + escapeRegex(alias) + "(?:$|\\s)");
+      const match = regex.exec(normalized);
+      if (!match) continue;
+
+      const isShortCode = alias.length <= 5 && !alias.includes(" ");
+      const atEnd = normalized.endsWith(alias);
+      const score =
+        (atEnd ? 1000 : 0) +
+        (isShortCode ? 200 : 0) +
+        match.index +
+        alias.length;
+
+      matches.push({ state, score });
+    }
   }
-  return null;
+
+  matches.sort((a, b) => b.score - a.score);
+  return matches[0]?.state ?? null;
 }
 
 function findMunicipality(normalized: string, state: StateDef | null): string | null {
