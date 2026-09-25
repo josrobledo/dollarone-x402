@@ -109,7 +109,13 @@ app.use(
 );
 
 app.post("/resolve-location", async c => {
-  const body = await c.req.json<{ query?: unknown }>().catch(() => ({}));
+  let body: { query?: unknown } = {};
+
+  try {
+    body = await c.req.json<{ query?: unknown }>();
+  } catch {
+    body = {};
+  }
 
   if (typeof body.query !== "string" || body.query.trim().length < 3) {
     return c.json(
