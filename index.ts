@@ -8,7 +8,6 @@ import {
 } from "@x402-avm/extensions";
 import type { ResourceServerExtension } from "@x402/core/types";
 import {
-  ALGORAND_MAINNET_CAIP2,
   USDC_TESTNET_ASA_ID,
   USDC_MAINNET_ASA_ID,
 } from "@x402/avm";
@@ -30,12 +29,15 @@ const facilitatorUrl =
 const networkName = (process.env.X402_NETWORK || "testnet").toLowerCase();
 const isMainnet = networkName === "mainnet";
 
-// Explicit TestNet CAIP-2 string. The current package constant used in the
-// first Railway deploy resolved to a truncated identifier, which caused
-// GoPlausible capability negotiation to reject the route.
+// GoPlausible currently accepts the full Algorand genesis-hash CAIP-2 forms.
+// Keep them explicit so TestNet/MainNet use the same facilitator-compatible convention.
 const ALGORAND_TESTNET_CAIP2_FULL =
   "algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=";
-const network = isMainnet ? ALGORAND_MAINNET_CAIP2 : ALGORAND_TESTNET_CAIP2_FULL;
+const ALGORAND_MAINNET_CAIP2_FULL =
+  "algorand:wGHE2Pwdvd7S12BL5FaOP20EGYesN73ktiC1qzkkit8=";
+const network = isMainnet
+  ? ALGORAND_MAINNET_CAIP2_FULL
+  : ALGORAND_TESTNET_CAIP2_FULL;
 const usdcAsset = isMainnet ? USDC_MAINNET_ASA_ID : USDC_TESTNET_ASA_ID;
 const port = Number(process.env.PORT || 4021);
 
