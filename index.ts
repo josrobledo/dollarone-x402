@@ -203,7 +203,7 @@ DollarOne normalizes messy Mexican location strings for software agents.
 
 - Method: **POST**
 - URL: ${publicBaseUrl}/resolve-location
-- Content-Type: `application/json`
+- Content-Type: \`application/json\`
 - Price: **0.01 USDC**
 - Payment protocol: **x402**
 - Network: **${isMainnet ? "Algorand MainNet" : "Algorand TestNet"}**
