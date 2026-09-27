@@ -80,6 +80,100 @@ const locationDiscovery = declareDiscoveryExtension({
   },
 });
 
+
+const publicBaseUrl =
+  process.env.PUBLIC_BASE_URL ||
+  "https://dollarone-x402-mainnet-production.up.railway.app";
+
+const discoveryDocument = {
+  name: "DollarOne Mexico Location Intelligence API",
+  description:
+    "Normalize messy Mexican location strings into structured state, municipality, locality, postal-code signal, confidence and provenance.",
+  version: "0.3.0",
+  homepage: publicBaseUrl,
+  health: `${publicBaseUrl}/health`,
+  openapi: `${publicBaseUrl}/openapi.json`,
+  skill: `${publicBaseUrl}/skill.md`,
+  payment: {
+    protocol: "x402",
+    scheme: "exact",
+    price: "0.01 USDC",
+    network: isMainnet ? "Algorand MainNet" : "Algorand TestNet",
+    assetId: usdcAsset,
+  },
+  resources: [
+    {
+      method: "POST",
+      path: "/resolve-location",
+      url: `${publicBaseUrl}/resolve-location`,
+      contentType: "application/json",
+      requestExample: { query: "col centro vicente guerrero dgo" },
+      paid: true,
+    },
+  ],
+};
+
+const openApiDocument = {
+  openapi: "3.1.0",
+  info: {
+    title: "DollarOne Mexico Location Intelligence API",
+    version: "0.3.0",
+    description:
+      "Paid x402 API for normalizing messy Mexican location strings.",
+  },
+  servers: [{ url: publicBaseUrl }],
+  paths: {
+    "/health": {
+      get: {
+        summary: "Health check",
+        responses: { "200": { description: "Service is healthy" } },
+      },
+    },
+    "/resolve-location": {
+      get: {
+        summary: "Discovery help for crawlers and agents",
+        responses: {
+          "200": {
+            description:
+              "Machine-readable instructions explaining that the paid resource uses POST.",
+          },
+        },
+      },
+      post: {
+        summary: "Resolve a Mexican location",
+        description:
+          "Requires an x402 payment of 0.01 USDC before the result is returned.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  query: {
+                    type: "string",
+                    minLength: 3,
+                    description: "Messy Mexican place/address fragment.",
+                  },
+                },
+                required: ["query"],
+              },
+              example: { query: "col centro vicente guerrero dgo" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Paid normalized location result",
+          },
+          "400": { description: "Invalid query" },
+          "402": { description: "Payment required via x402" },
+        },
+      },
+    },
+  },
+};
+
 const app = new Hono();
 
 app.use("/assets/*", serveStatic({ root: "./public" }));
@@ -92,6 +186,68 @@ app.get("/health", c =>
     service: "DollarOne Mexico Location Intelligence API",
     x402Network: isMainnet ? "mainnet" : "testnet",
     paymentAsset: "USDC",
+  }),
+);
+
+app.get("/.well-known/x402", c => c.json(discoveryDocument));
+
+app.get("/openapi.json", c => c.json(openApiDocument));
+
+app.get("/skill.md", c => {
+  c.header("Content-Type", "text/markdown; charset=utf-8");
+  return c.body(`# DollarOne Mexico Location Intelligence API
+
+DollarOne normalizes messy Mexican location strings for software agents.
+
+## Paid resource
+
+- Method: **POST**
+- URL: ${publicBaseUrl}/resolve-location
+- Content-Type: `application/json`
+- Price: **0.01 USDC**
+- Payment protocol: **x402**
+- Network: **${isMainnet ? "Algorand MainNet" : "Algorand TestNet"}**
+
+### Request
+
+\`\`\`json
+{"query":"col centro vicente guerrero dgo"}
+\`\`\`
+
+The service first returns HTTP 402 with x402 payment requirements. After payment, retry the same POST request with the payment payload and the API returns the normalized result.
+
+## Discovery
+
+- Manifest: ${publicBaseUrl}/.well-known/x402
+- OpenAPI: ${publicBaseUrl}/openapi.json
+- Health: ${publicBaseUrl}/health
+
+Do not use GET to purchase the resource. GET /resolve-location is discovery-only and returns usage instructions.
+`);
+});
+
+app.get("/robots.txt", c => {
+  c.header("Content-Type", "text/plain; charset=utf-8");
+  return c.body(`User-agent: *
+Allow: /
+`);
+});
+
+app.get("/resolve-location", c =>
+  c.json({
+    ok: true,
+    discoveryOnly: true,
+    message:
+      "This paid resource uses POST, not GET. Read /openapi.json or /skill.md for machine-readable usage instructions.",
+    method: "POST",
+    endpoint: `${publicBaseUrl}/resolve-location`,
+    price: "0.01 USDC",
+    paymentProtocol: "x402",
+    network: isMainnet ? "Algorand MainNet" : "Algorand TestNet",
+    requestExample: { query: "col centro vicente guerrero dgo" },
+    openapi: `${publicBaseUrl}/openapi.json`,
+    skill: `${publicBaseUrl}/skill.md`,
+    manifest: `${publicBaseUrl}/.well-known/x402`,
   }),
 );
 
