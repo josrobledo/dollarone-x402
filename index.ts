@@ -88,8 +88,19 @@ const publicBaseUrl =
 const discoveryDocument = {
   name: "DollarOne Mexico Location Intelligence API",
   description:
-    "Normalize messy Mexican location strings into structured state, municipality, locality, postal-code signal, confidence and provenance.",
-  version: "0.3.0",
+    "Turn noisy Mexican location text into deterministic structured fields for routing, CRM cleanup, civic reports, checkout, delivery and agent workflows. Supports all Mexican states plus selected municipality enrichment, with confidence, warnings and provenance.",
+  version: "0.4.0",
+  bestFor: [
+    "User-entered Mexican place names with abbreviations such as DGO, GTO, QRO or CDMX",
+    "Routing and triage before a more expensive geocoder or human review",
+    "CRM, support, civic-report and checkout workflows that need normalized state codes",
+    "Agents that need a cheap deterministic location normalization step"
+  ],
+  coverage: {
+    states: "All 32 Mexican states",
+    municipalityEnrichment: "Selected municipalities in Durango in the current MVP",
+    postalCode: "5-digit pattern detection; not yet cross-validated"
+  },
   homepage: publicBaseUrl,
   health: `${publicBaseUrl}/health`,
   openapi: `${publicBaseUrl}/openapi.json`,
@@ -108,6 +119,20 @@ const discoveryDocument = {
       url: `${publicBaseUrl}/resolve-location`,
       contentType: "application/json",
       requestExample: { query: "col centro vicente guerrero dgo" },
+      responseIncludes: [
+        "country",
+        "state",
+        "stateCode",
+        "municipality",
+        "locality",
+        "postalCode",
+        "confidence",
+        "matchedBy",
+        "warnings",
+        "sources"
+      ],
+      useWhen:
+        "You have noisy Mexican location text and need a normalized, machine-readable result before routing, storage, deduplication or follow-up.",
       paid: true,
     },
   ],
@@ -117,9 +142,9 @@ const openApiDocument = {
   openapi: "3.1.0",
   info: {
     title: "DollarOne Mexico Location Intelligence API",
-    version: "0.3.0",
+    version: "0.4.0",
     description:
-      "Paid x402 API for normalizing messy Mexican location strings.",
+      "Cheap deterministic x402 tool for software agents that need to normalize noisy Mexican location text before routing, CRM storage, civic-report triage, checkout or delivery. All 32 states are recognized; municipality enrichment is currently strongest in Durango.",
   },
   servers: [{ url: publicBaseUrl }],
   paths: {
@@ -140,9 +165,9 @@ const openApiDocument = {
         },
       },
       post: {
-        summary: "Resolve a Mexican location",
+        summary: "Normalize noisy Mexican location text for $0.01",
         description:
-          "Requires an x402 payment of 0.01 USDC before the result is returned.",
+          "Use this when an agent has a user-entered Mexican place/address fragment containing abbreviations, punctuation noise, state names or a 5-digit postal-code pattern and needs structured fields before routing, CRM storage, deduplication or follow-up. Deterministic normalization; no API key or account is required. Requires an x402 payment of 0.01 USDC.",
         requestBody: {
           required: true,
           content: {
@@ -158,7 +183,11 @@ const openApiDocument = {
                 },
                 required: ["query"],
               },
-              example: { query: "col centro vicente guerrero dgo" },
+              examples: {
+                civicReport: { value: { query: "col centro vicente guerrero dgo" } },
+                stateAbbreviation: { value: { query: "leon gto" } },
+                postalCodeSignal: { value: { query: "centro durango dgo 34000" } }
+              },
             },
           },
         },
@@ -197,7 +226,19 @@ app.get("/skill.md", c => {
   c.header("Content-Type", "text/markdown; charset=utf-8");
   return c.body(`# DollarOne Mexico Location Intelligence API
 
-DollarOne normalizes messy Mexican location strings for software agents.
+DollarOne is a cheap deterministic normalization step for software agents handling Mexican location text.
+
+## When to buy this call
+
+Use DollarOne when you have noisy user-entered text such as abbreviations, inconsistent punctuation, state names, selected municipalities or a 5-digit postal-code signal and you need structured fields before:
+
+- routing or triage
+- CRM/support storage
+- civic-report classification
+- checkout or delivery workflows
+- deduplication or deciding whether a more expensive geocoder is necessary
+
+Current coverage: all 32 Mexican states; selected municipality enrichment is strongest in Durango. Responses include confidence, warnings and provenance so an agent can decide whether to accept the result or escalate.
 
 ## Paid resource
 
@@ -226,6 +267,53 @@ Do not use GET to purchase the resource. GET /resolve-location is discovery-only
 `);
 });
 
+
+app.get("/agents.json", c =>
+  c.json({
+    name: "DollarOne Mexico Location Intelligence API",
+    description:
+      "Low-cost x402 location-normalization tool for agents working with noisy Mexican location text.",
+    homepage: publicBaseUrl,
+    capabilities: [
+      {
+        name: "resolve_location",
+        method: "POST",
+        url: `${publicBaseUrl}/resolve-location`,
+        price: "0.01 USDC",
+        protocol: "x402",
+        useWhen:
+          "Normalize user-entered Mexican location text before routing, CRM storage, civic-report triage, checkout, delivery, deduplication or escalation."
+      }
+    ],
+    discovery: {
+      x402: `${publicBaseUrl}/.well-known/x402`,
+      openapi: `${publicBaseUrl}/openapi.json`,
+      skill: `${publicBaseUrl}/skill.md`
+    }
+  }),
+);
+
+app.get("/llms.txt", c => {
+  c.header("Content-Type", "text/plain; charset=utf-8");
+  return c.body(`# DollarOne Mexico Location Intelligence API
+> Low-cost deterministic x402 tool for normalizing noisy Mexican location text.
+
+Use when: an agent receives messy Mexican place/address text and needs structured state/stateCode, selected municipality enrichment, postal-code signal, confidence, warnings and provenance before routing, CRM storage, civic-report triage, checkout, delivery, deduplication or escalation.
+
+Paid endpoint: POST ${publicBaseUrl}/resolve-location
+Price: 0.01 USDC via x402
+Network: ${isMainnet ? "Algorand MainNet" : "Algorand TestNet"}
+Example body: {"query":"col centro vicente guerrero dgo"}
+
+Coverage: all 32 Mexican states; selected municipality enrichment is currently strongest in Durango.
+
+Discovery:
+- ${publicBaseUrl}/.well-known/x402
+- ${publicBaseUrl}/openapi.json
+- ${publicBaseUrl}/skill.md
+`);
+});
+
 app.get("/robots.txt", c => {
   c.header("Content-Type", "text/plain; charset=utf-8");
   return c.body(`User-agent: *
@@ -245,6 +333,12 @@ app.get("/resolve-location", c =>
     paymentProtocol: "x402",
     network: isMainnet ? "Algorand MainNet" : "Algorand TestNet",
     requestExample: { query: "col centro vicente guerrero dgo" },
+    whyUseIt:
+      "Cheap deterministic normalization before routing, CRM storage, civic-report triage, checkout, delivery, deduplication or a more expensive geocoder.",
+    coverage: {
+      states: "All 32 Mexican states",
+      municipalityEnrichment: "Selected municipalities in Durango in the current MVP"
+    },
     openapi: `${publicBaseUrl}/openapi.json`,
     skill: `${publicBaseUrl}/skill.md`,
     manifest: `${publicBaseUrl}/.well-known/x402`,
